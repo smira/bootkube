@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog"
 )
 
 var (
@@ -119,7 +119,7 @@ func podListToMap(pl *corev1.PodList, filter filterFn) map[string]*corev1.Pod {
 		id := podFullName(pod)
 
 		if _, ok := pods[id]; ok { // TODO(aaron): likely not be necessary (shouldn't ever happen) - but sanity check
-			glog.Warningf("Found multiple local parent pods with same id: %s", id)
+			klog.Warningf("Found multiple local parent pods with same id: %s", id)
 		}
 
 		// Pods from Kubelet API do not have TypeMeta populated - set it here either way.

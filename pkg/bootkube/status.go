@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 )
 
 const (
@@ -134,7 +134,7 @@ func (s *statusController) AllRunning() (bool, error) {
 func (s *statusController) allPodsRunning() bool {
 	ps, err := s.PodStatus()
 	if err != nil {
-		glog.Infof("Error retriving pod statuses: %v", err)
+		klog.Infof("Error retriving pod statuses: %v", err)
 		return false
 	}
 
@@ -163,7 +163,7 @@ func (s *statusController) allNodesReady() bool {
 	// Check node status to ensure all nodes are Ready
 	ns, err := s.NodeStatus()
 	if err != nil {
-		glog.Info("Error retrieving node conditions: %v", err)
+		klog.Info("Error retrieving node conditions: %v", err)
 		return false
 	}
 

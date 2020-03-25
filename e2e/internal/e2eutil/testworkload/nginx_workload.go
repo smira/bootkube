@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	batchv1 "k8s.io/api/batch/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +13,7 @@ import (
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 )
 
 var (
@@ -81,7 +81,7 @@ func NewNginx(kc kubernetes.Interface, namespace string, options ...NginxOpts) (
 	if err = wait.PollImmediate(PollIntervalForNginx, PollTimeoutForNginx, func() (bool, error) {
 		d, err := kc.ExtensionsV1beta1().Deployments(n.Namespace).Get(n.Name, metav1.GetOptions{})
 		if err != nil {
-			glog.Errorf("Error getting deployment %s: %v", n.Name, err)
+			klog.Errorf("Error getting deployment %s: %v", n.Name, err)
 			return false, nil
 		}
 		if d.Status.UpdatedReplicas != d.Status.AvailableReplicas && d.Status.UnavailableReplicas != 0 {
@@ -93,7 +93,7 @@ func NewNginx(kc kubernetes.Interface, namespace string, options ...NginxOpts) (
 			LabelSelector: metav1.FormatLabelSelector(n.podSelector),
 		})
 		if err != nil {
-			glog.Errorf("Error getting pods for deployment %s: %v", n.Name, err)
+			klog.Errorf("Error getting pods for deployment %s: %v", n.Name, err)
 			return false, nil
 		}
 		if len(pl.Items) == 0 {
@@ -284,7 +284,7 @@ func (n *Nginx) newPingPod(reachable bool) error {
 	if err := wait.PollImmediate(PollIntervalForNginx, PollTimeoutForNginx, func() (bool, error) {
 		j, err := n.client.BatchV1().Jobs(n.Namespace).Get(job.GetName(), metav1.GetOptions{})
 		if err != nil {
-			glog.Errorf("Error getting job %s: %v", job.GetName(), err)
+			klog.Errorf("Error getting job %s: %v", job.GetName(), err)
 			return false, nil
 		}
 

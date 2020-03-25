@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // apiCondition represents information returned from the various api endpoints for a given pod.
@@ -204,7 +204,7 @@ func (s stateInactiveGracePeriod) transition(now time.Time, apis apiCondition) c
 func (s stateInactiveGracePeriod) checkGracePeriod(now time.Time, apis apiCondition) checkpointState {
 	// Override state to remove if the grace period has passed.
 	if now.Equal(s.gracePeriodEnd) || now.After(s.gracePeriodEnd) {
-		glog.Infof("Grace period exceeded for state %s", s)
+		klog.Infof("Grace period exceeded for state %s", s)
 		return stateRemove{}
 	}
 	return s
@@ -303,7 +303,7 @@ func (s stateActiveGracePeriod) checkGracePeriod(now time.Time, apis apiConditio
 	// Override state to stateInactiveGracePeriod.transition() as if the grace period has passed. This
 	// has the effect of either transitioning to stateInactive or stateRemove.
 	if now.Equal(s.gracePeriodEnd) || now.After(s.gracePeriodEnd) {
-		glog.Infof("Grace period exceeded for state %s", s)
+		klog.Infof("Grace period exceeded for state %s", s)
 		return stateInactiveGracePeriod{gracePeriodEnd: now}.transition(now, apis)
 	}
 	return s
@@ -328,7 +328,7 @@ type stateRemove struct{}
 // transition implements state.transition()
 func (s stateRemove) transition(now time.Time, apis apiCondition) checkpointState {
 	// Remove is a terminal state. This should never actually be called.
-	glog.Errorf("Unexpected call to transition() for state %s", s)
+	klog.Errorf("Unexpected call to transition() for state %s", s)
 	return s
 }
 

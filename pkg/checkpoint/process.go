@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog"
 )
 
 // checkpoint holds the state of a single checkpointed pod. A checkpoint can move between states
@@ -126,13 +126,13 @@ func (cs *checkpoints) process(now time.Time, apiAvailable bool, localRunningPod
 		})
 
 		if state != cs.selfCheckpoint.state {
-			glog.Infof("Self-checkpoint %s transitioning from state %s -> state %s", cs.selfCheckpoint, cs.selfCheckpoint.state, state)
+			klog.Infof("Self-checkpoint %s transitioning from state %s -> state %s", cs.selfCheckpoint, cs.selfCheckpoint.state, state)
 			cs.selfCheckpoint.state = state
 		}
 
 		switch cs.selfCheckpoint.state.action() {
 		case none:
-			glog.Errorf("Unexpected transition to state %s with action 'none'", state)
+			klog.Errorf("Unexpected transition to state %s with action 'none'", state)
 		case start:
 			// The selfCheckpoint must always be active to ensure that it can perform its functions in
 			// the face of a full control plane restart.
@@ -181,7 +181,7 @@ func (cs *checkpoints) process(now time.Time, apiAvailable bool, localRunningPod
 			if cp.state.action() != state.action() {
 				switch state.action() {
 				case none:
-					glog.Errorf("Unexpected transition to state %s with action 'none'", state)
+					klog.Errorf("Unexpected transition to state %s with action 'none'", state)
 				case start:
 					starts = append(starts, cp.name)
 				case stop:
@@ -194,7 +194,7 @@ func (cs *checkpoints) process(now time.Time, apiAvailable bool, localRunningPod
 				}
 			}
 
-			glog.Infof("Checkpoint %s transitioning from state %s -> state %s", cp, cp.state, state)
+			klog.Infof("Checkpoint %s transitioning from state %s -> state %s", cp, cp.state, state)
 			cp.state = state
 		}
 	}
@@ -228,7 +228,7 @@ func (c *checkpointer) createCheckpointsForValidParents() {
 
 		podChanged, err := writeCheckpointManifest(cp)
 		if err != nil {
-			glog.Errorf("Failed to write checkpoint for %s: %v", id, err)
+			klog.Errorf("Failed to write checkpoint for %s: %v", id, err)
 			continue
 		}
 
@@ -239,7 +239,7 @@ func (c *checkpointer) createCheckpointsForValidParents() {
 			if err != nil {
 				//TODO(aaron): This can end up spamming logs at times when api-server is unavailable. To reduce spam
 				//             we could only log error if api-server can't be contacted and existing secret doesn't exist.
-				glog.Errorf("Failed to checkpoint secrets for pod %s: %v", id, err)
+				klog.Errorf("Failed to checkpoint secrets for pod %s: %v", id, err)
 				continue
 			}
 
@@ -247,7 +247,7 @@ func (c *checkpointer) createCheckpointsForValidParents() {
 			if err != nil {
 				//TODO(aaron): This can end up spamming logs at times when api-server is unavailable. To reduce spam
 				//             we could only log error if api-server can't be contacted and existing configmap doesn't exist.
-				glog.Errorf("Failed to checkpoint configMaps for pod %s: %v", id, err)
+				klog.Errorf("Failed to checkpoint configMaps for pod %s: %v", id, err)
 				continue
 			}
 		}
@@ -261,24 +261,24 @@ func (c *checkpointer) createCheckpointsForValidParents() {
 
 func handleRemove(remove []string) {
 	for _, id := range remove {
-		glog.Infof("Removing checkpoint of: %s", id)
+		klog.Infof("Removing checkpoint of: %s", id)
 
 		// Remove Secrets
 		p := podFullNameToSecretPath(id)
 		if err := os.RemoveAll(p); err != nil {
-			glog.Errorf("Failed to remove pod secrets from %s: %s", p, err)
+			klog.Errorf("Failed to remove pod secrets from %s: %s", p, err)
 		}
 
 		// Remove ConfipMaps
 		p = podFullNameToConfigMapPath(id)
 		if err := os.RemoveAll(p); err != nil {
-			glog.Errorf("Failed to remove pod configMaps from %s: %s", p, err)
+			klog.Errorf("Failed to remove pod configMaps from %s: %s", p, err)
 		}
 
 		// Remove inactive checkpoints
 		p = podFullNameToInactiveCheckpointPath(id)
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
-			glog.Errorf("Failed to remove inactive checkpoint %s: %v", p, err)
+			klog.Errorf("Failed to remove inactive checkpoint %s: %v", p, err)
 			continue
 		}
 
@@ -294,7 +294,7 @@ func handleRemove(remove []string) {
 		// ok to just leave as is for now. We can handle this more gracefully later.
 		p = podFullNameToActiveCheckpointPath(id)
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
-			glog.Errorf("Failed to remove active checkpoint %s: %v", p, err)
+			klog.Errorf("Failed to remove active checkpoint %s: %v", p, err)
 			continue
 		}
 	}
@@ -302,13 +302,13 @@ func handleRemove(remove []string) {
 
 func handleStop(stop []string) {
 	for _, id := range stop {
-		glog.Infof("Stopping active checkpoint: %s", id)
+		klog.Infof("Stopping active checkpoint: %s", id)
 		p := podFullNameToActiveCheckpointPath(id)
 		if err := os.Remove(p); err != nil {
 			if os.IsNotExist(err) { // Sanity check (it's fine - just want to surface this if it's occurring)
-				glog.Warningf("Attempted to remove active checkpoint, but manifest no longer exists: %s", p)
+				klog.Warningf("Attempted to remove active checkpoint, but manifest no longer exists: %s", p)
 			} else {
-				glog.Errorf("Failed to stop active checkpoint %s: %v", p, err)
+				klog.Errorf("Failed to stop active checkpoint %s: %v", p, err)
 			}
 		}
 	}
@@ -319,13 +319,13 @@ func handleStart(start []string) {
 		src := podFullNameToInactiveCheckpointPath(id)
 		data, err := ioutil.ReadFile(src)
 		if err != nil {
-			glog.Errorf("Failed to read checkpoint source: %v", err)
+			klog.Errorf("Failed to read checkpoint source: %v", err)
 			continue
 		}
 
 		dst := podFullNameToActiveCheckpointPath(id)
 		if _, err := writeManifestIfDifferent(dst, id, data); err != nil {
-			glog.Errorf("Failed to write active checkpoint manifest: %v", err)
+			klog.Errorf("Failed to write active checkpoint manifest: %v", err)
 		}
 	}
 }

@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog"
 )
 
 // getFileCheckpoints will retrieve all checkpoint manifests from a given filepath.
@@ -19,7 +19,7 @@ func getFileCheckpoints(path string) map[string]*corev1.Pod {
 
 	fi, err := ioutil.ReadDir(path)
 	if err != nil {
-		glog.Fatalf("Failed to read checkpoint manifest path: %v", err)
+		klog.Fatalf("Failed to read checkpoint manifest path: %v", err)
 	}
 
 	for _, f := range fi {
@@ -27,28 +27,28 @@ func getFileCheckpoints(path string) map[string]*corev1.Pod {
 
 		// Check for leftover temporary checkpoints.
 		if strings.HasPrefix(filepath.Base(manifest), ".") {
-			glog.V(4).Infof("Found temporary checkpoint %s, removing.", manifest)
+			klog.V(4).Infof("Found temporary checkpoint %s, removing.", manifest)
 			if err := os.Remove(manifest); err != nil {
-				glog.V(4).Infof("Error removing temporary checkpoint %s: %v.", manifest, err)
+				klog.V(4).Infof("Error removing temporary checkpoint %s: %v.", manifest, err)
 			}
 			continue
 		}
 
 		b, err := ioutil.ReadFile(manifest)
 		if err != nil {
-			glog.Errorf("Error reading manifest: %v", err)
+			klog.Errorf("Error reading manifest: %v", err)
 			continue
 		}
 
 		cp := &corev1.Pod{}
 		if err := runtime.DecodeInto(scheme.Codecs.UniversalDecoder(), b, cp); err != nil {
-			glog.Errorf("Error unmarshalling manifest from %s: %v", filepath.Join(path, f.Name()), err)
+			klog.Errorf("Error unmarshalling manifest from %s: %v", filepath.Join(path, f.Name()), err)
 			continue
 		}
 
 		if isCheckpoint(cp) {
 			if _, ok := checkpoints[podFullName(cp)]; ok { // sanity check
-				glog.Warningf("Found multiple checkpoint pods in %s with same id: %s", path, podFullName(cp))
+				klog.Warningf("Found multiple checkpoint pods in %s with same id: %s", path, podFullName(cp))
 			}
 			checkpoints[podFullName(cp)] = cp
 		}
@@ -74,10 +74,10 @@ func writeManifestIfDifferent(path, name string, data []byte) (bool, error) {
 		return false, err
 	}
 	if bytes.Equal(existing, data) {
-		glog.V(4).Infof("Checkpoint manifest for %q already exists. Skipping", name)
+		klog.V(4).Infof("Checkpoint manifest for %q already exists. Skipping", name)
 		return false, nil
 	}
-	glog.Infof("Writing manifest for %q to %q", name, path)
+	klog.Infof("Writing manifest for %q to %q", name, path)
 	return true, writeAndAtomicRename(path, data, rootUID, rootGID, 0644)
 }
 

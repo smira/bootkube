@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/golang/glog"
 	"google.golang.org/grpc"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/bootkube/pkg/checkpoint/cri/v1alpha1"
 	"github.com/kubernetes-sigs/bootkube/pkg/checkpoint/cri/v1alpha2"
@@ -30,7 +30,7 @@ type remoteRuntimeService struct {
 }
 
 func newRemoteRuntimeService(endpoint string, connectionTimeout time.Duration) (*remoteRuntimeService, error) {
-	glog.Infof("Connecting to runtime service %s", endpoint)
+	klog.Infof("Connecting to runtime service %s", endpoint)
 	addr, dialer, err := internal.GetAddressAndDialer(endpoint)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func newRemoteRuntimeService(endpoint string, connectionTimeout time.Duration) (
 
 	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithTimeout(connectionTimeout), grpc.WithDialer(dialer))
 	if err != nil {
-		glog.Errorf("Connect remote runtime %s failed: %v", addr, err)
+		klog.Errorf("Connect remote runtime %s failed: %v", addr, err)
 		return nil, err
 	}
 
@@ -56,7 +56,7 @@ func (r *remoteRuntimeService) localRunningPods() map[string]*v1.Pod {
 	// Retrieving sandboxes is likely redundant but is done to maintain sameness with what the kubelet does
 	sandboxes, err := r.getRunningKubeletSandboxes()
 	if err != nil {
-		glog.Errorf("failed to list running sandboxes: %v", err)
+		klog.Errorf("failed to list running sandboxes: %v", err)
 		return nil
 	}
 
@@ -75,7 +75,7 @@ func (r *remoteRuntimeService) localRunningPods() map[string]*v1.Pod {
 
 	containers, err := r.getRunningKubeletContainers()
 	if err != nil {
-		glog.Errorf("failed to list running containers: %v", err)
+		klog.Errorf("failed to list running containers: %v", err)
 		return nil
 	}
 
@@ -122,12 +122,12 @@ func (r *remoteRuntimeService) getRunningKubeletContainers() ([]criContainer, er
 			},
 		})
 		if err != nil {
-			glog.Errorf("ListContainers with filter from runtime service failed: %v", err)
+			klog.Errorf("ListContainers with filter from runtime service failed: %v", err)
 			return nil, err
 		}
 		for _, c := range resp.Containers {
 			if c.Metadata == nil {
-				glog.V(4).Infof("Container does not have metadata: %+v", c)
+				klog.V(4).Infof("Container does not have metadata: %+v", c)
 				continue
 			}
 			containers = append(containers, criContainer{Labels: c.Labels})
@@ -145,12 +145,12 @@ func (r *remoteRuntimeService) getRunningKubeletContainers() ([]criContainer, er
 		},
 	})
 	if err != nil {
-		glog.Errorf("ListContainers with filter from runtime service failed: %v", err)
+		klog.Errorf("ListContainers with filter from runtime service failed: %v", err)
 		return nil, err
 	}
 	for _, c := range resp.Containers {
 		if c.Metadata == nil {
-			glog.V(4).Infof("Container does not have metadata: %+v", c)
+			klog.V(4).Infof("Container does not have metadata: %+v", c)
 			continue
 		}
 		containers = append(containers, criContainer{Labels: c.Labels})
@@ -173,12 +173,12 @@ func (r *remoteRuntimeService) getRunningKubeletSandboxes() ([]criSandbox, error
 			},
 		})
 		if err != nil {
-			glog.Errorf("ListPodSandbox with filter from runtime service failed: %v", err)
+			klog.Errorf("ListPodSandbox with filter from runtime service failed: %v", err)
 			return nil, err
 		}
 		for _, c := range resp.Items {
 			if c.Metadata == nil {
-				glog.V(4).Infof("Sandbox does not have metadata: %+v", c)
+				klog.V(4).Infof("Sandbox does not have metadata: %+v", c)
 				continue
 			}
 			sandboxes = append(sandboxes, criSandbox{
@@ -199,12 +199,12 @@ func (r *remoteRuntimeService) getRunningKubeletSandboxes() ([]criSandbox, error
 		},
 	})
 	if err != nil {
-		glog.Errorf("ListPodSandbox with filter from runtime service failed: %v", err)
+		klog.Errorf("ListPodSandbox with filter from runtime service failed: %v", err)
 		return nil, err
 	}
 	for _, c := range resp.Items {
 		if c.Metadata == nil {
-			glog.V(4).Infof("Sandbox does not have metadata: %+v", c)
+			klog.V(4).Infof("Sandbox does not have metadata: %+v", c)
 			continue
 		}
 		sandboxes = append(sandboxes, criSandbox{

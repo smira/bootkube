@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 )
 
 // A minimal kubelet client. It assumes the kubelet can be reached the kubelet's insecure API at
@@ -52,10 +52,10 @@ func (k *kubeletClient) localParentPods() map[string]*corev1.Pod {
 	podList := new(corev1.PodList)
 	timeout := 15 * time.Second
 	if err := k.secureClient.Get().AbsPath("/pods/").Timeout(timeout).Do().Into(podList); err != nil {
-		glog.Errorf("failed to secure list local parent pods, fallback to insecure: %v", err)
+		klog.Errorf("failed to secure list local parent pods, fallback to insecure: %v", err)
 		if err := k.insecureClient.Get().AbsPath("/pods/").Timeout(timeout).Do().Into(podList); err != nil {
 			// Assume there are no local parent pods.
-			glog.Errorf("failed to insecure list local parent pods, assuming none are running: %v", err)
+			klog.Errorf("failed to insecure list local parent pods, assuming none are running: %v", err)
 		}
 	}
 	return podListToParentPods(podList)

@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 )
 
 const (
@@ -55,7 +55,7 @@ func CreateAssets(config clientcmd.ClientConfig, manifestDir string, timeout tim
 
 	upFn := func() (bool, error) {
 		if err := apiTest(config); err != nil {
-			glog.Warningf("Unable to determine api-server readiness: %v", err)
+			klog.Warningf("Unable to determine api-server readiness: %v", err)
 			return false, nil
 		}
 		return true, nil
@@ -64,7 +64,7 @@ func CreateAssets(config clientcmd.ClientConfig, manifestDir string, timeout tim
 	UserOutput("Waiting for api-server...\n")
 	if err := wait.Poll(5*time.Second, timeout, upFn); err != nil {
 		err = fmt.Errorf("API Server is not ready: %v", err)
-		glog.Error(err)
+		klog.Error(err)
 		return err
 	}
 

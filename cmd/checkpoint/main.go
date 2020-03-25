@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 
 	"github.com/kubernetes-sigs/bootkube/pkg/checkpoint"
 )
@@ -42,26 +42,26 @@ func init() {
 
 func main() {
 	flag.Parse()
-	defer glog.Flush()
+	defer klog.Flush()
 
-	glog.Info("Determining environment from downward API")
+	klog.Info("Determining environment from downward API")
 	nodeName, podName, podNamespace, err := readDownwardAPI()
 	if err != nil {
-		glog.Fatalf("Error reading downward API: %v", err)
+		klog.Fatalf("Error reading downward API: %v", err)
 	}
 
-	glog.Infof("Trying to acquire the flock at %q", lockfilePath)
+	klog.Infof("Trying to acquire the flock at %q", lockfilePath)
 	if err := flock(lockfilePath); err != nil {
-		glog.Fatalf("Error when acquiring the flock: %v", err)
+		klog.Fatalf("Error when acquiring the flock: %v", err)
 	}
 
-	glog.Infof("Starting checkpointer for node: %s", nodeName)
+	klog.Infof("Starting checkpointer for node: %s", nodeName)
 	// This is run as a static pod, so we can't use InClusterConfig because
 	// KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT won't be set in
 	// the pod.
 	kubeConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath}, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		glog.Fatalf("Failed to load kubeconfig: %v", err)
+		klog.Fatalf("Failed to load kubeconfig: %v", err)
 	}
 	if err := checkpoint.Run(checkpoint.Options{
 		CheckpointerPod: checkpoint.CheckpointerPod{
@@ -74,7 +74,7 @@ func main() {
 		RuntimeRequestTimeout: runtimeRequestTimeout,
 		CheckpointGracePeriod: checkpointGracePeriod,
 	}); err != nil {
-		glog.Fatalf("Error starting checkpointer: %v", err)
+		klog.Fatalf("Error starting checkpointer: %v", err)
 	}
 }
 

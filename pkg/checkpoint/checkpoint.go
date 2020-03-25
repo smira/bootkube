@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/klog"
 )
 
 const (
@@ -104,7 +104,7 @@ func Run(opts Options) error {
 func (c *checkpointer) run() {
 	// Make sure the inactive checkpoint path exists.
 	if err := os.MkdirAll(inactiveCheckpointPath, 0700); err != nil {
-		glog.Fatalf("Could not create inactive checkpoint path: %v", err)
+		klog.Fatalf("Could not create inactive checkpoint path: %v", err)
 	}
 
 	for {
